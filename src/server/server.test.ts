@@ -208,6 +208,16 @@ describe("startServer — lifecycle", () => {
 		expect(deep.status).toBe(200);
 		expect(await deep.text()).toContain("warren ui");
 
+		const samplePage = await fetch(`${base}/sample-greeting`);
+		expect(samplePage.status).toBe(200);
+		expect(samplePage.headers.get("content-type")).toContain("text/html");
+
+		const sampleApi = await fetch(`${base}/api/sample-greeting?name=Codex`, {
+			headers: { authorization: "Bearer secret" },
+		});
+		expect(sampleApi.status).toBe(200);
+		expect(await sampleApi.json()).toEqual({ name: "Codex", message: "Hello, Codex!" });
+
 		// API endpoints stay gated.
 		const agents = await fetch(`${base}/agents`);
 		expect(agents.status).toBe(401);

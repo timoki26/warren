@@ -129,7 +129,7 @@ const ROUTE_TABLE: readonly RouteEntry[] = [
 	{ method: "GET", pattern: "/whoami", policy: "readPublic", build: () => whoamiHandler() },
 	{
 		method: "GET",
-		pattern: "/sample-greeting",
+		pattern: "/api/sample-greeting",
 		policy: "readPublic",
 		build: () => sampleGreetingHandler(),
 	},
@@ -335,7 +335,7 @@ export const API_PREFIXES: readonly string[] = [
 	"/plan-runs",
 	"/whoami",
 	"/github-app",
-	"/sample-greeting",
+	"/api/sample-greeting",
 ];
 
 /**

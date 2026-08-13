@@ -16,6 +16,8 @@ tags:
     description: '`/alerts` routes.'
   - name: analytics
     description: '`/analytics` routes.'
+  - name: api
+    description: '`/api` routes.'
   - name: github-app
     description: '`/github-app` routes.'
   - name: meta
@@ -30,8 +32,6 @@ tags:
     description: '`/projects` routes.'
   - name: runs
     description: '`/runs` routes.'
-  - name: sample-greeting
-    description: '`/sample-greeting` routes.'
   - name: whoami
     description: '`/whoami` routes.'
 paths:
@@ -105,6 +105,17 @@ paths:
       tags:
         - analytics
       summary: GET /analytics/runs
+      responses:
+        '200':
+          description: Successful response.
+        default:
+          description: Error response (see `src/core/errors.ts`).
+  /api/sample-greeting:
+    get:
+      operationId: sampleGreetingHandler
+      tags:
+        - api
+      summary: GET /api/sample-greeting
       responses:
         '200':
           description: Successful response.
@@ -668,17 +679,6 @@ paths:
           required: true
           schema:
             type: string
-  /sample-greeting:
-    get:
-      operationId: sampleGreetingHandler
-      tags:
-        - sample-greeting
-      summary: GET /sample-greeting
-      responses:
-        '200':
-          description: Successful response.
-        default:
-          description: Error response (see `src/core/errors.ts`).
   /version:
     get:
       operationId: versionHandler
