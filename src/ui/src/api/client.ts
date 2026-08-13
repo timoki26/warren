@@ -27,6 +27,7 @@ import type {
 	RunEvent,
 	RunRow,
 	RunTriggerResponse,
+	SampleGreetingResponse,
 	SeedPlansResponse,
 	SeedStatusResponse,
 	SpawnRunResponse,
@@ -124,6 +125,15 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
 	if (text.length === 0) return undefined as T;
 	return JSON.parse(text) as T;
 }
+
+export const sampleGreetingApi = {
+	get: (name: string, signal?: AbortSignal) => {
+		const query = new URLSearchParams({ name });
+		return request<SampleGreetingResponse>(`/sample-greeting?${query.toString()}`, {
+			...(signal ? { signal } : {}),
+		});
+	},
+};
 
 /* ----------------------------------------------------------------------- */
 /* Agents                                                                   */

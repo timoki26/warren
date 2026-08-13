@@ -10,6 +10,7 @@ import {
 	LogIn,
 	LogOut,
 	Menu,
+	MessageCircle,
 	Plus,
 	X,
 } from "lucide-react";
@@ -43,6 +44,7 @@ const NAV_ITEMS: NavItem[] = [
 	{ to: "/plan-runs", label: "Plan runs", icon: ListChecks },
 	{ to: "/projects", label: "Projects", icon: FolderGit2 },
 	{ to: "/agents", label: "Agents", icon: Bot },
+	{ to: "/sample-greeting", label: "Sample", icon: MessageCircle },
 	// Cost analytics (warren-cf63 / pl-b0c0 step 6) lives at the bottom
 	// of the sidebar — it's an operator-facing analytics view, not a
 	// daily-driver page, so it stays out of the lead-eight positions.

@@ -53,6 +53,7 @@ import {
 	steerRunHandler,
 	streamRunEventsHandler,
 } from "./runs/index.ts";
+import { sampleGreetingHandler } from "./sample-greeting.ts";
 
 /* ----------------------------------------------------------------------- */
 /* Route table                                                              */
@@ -126,6 +127,12 @@ const ROUTE_TABLE: readonly RouteEntry[] = [
 	{ method: "GET", pattern: "/metrics", policy: "readOperator", build: metricsHandler },
 	// warren-e195: `readPublic`, not `anonymous` — an exempt route gets no actor to name.
 	{ method: "GET", pattern: "/whoami", policy: "readPublic", build: () => whoamiHandler() },
+	{
+		method: "GET",
+		pattern: "/sample-greeting",
+		policy: "readPublic",
+		build: () => sampleGreetingHandler(),
+	},
 
 	{ method: "GET", pattern: "/agents", policy: "readPublic", build: listAgentsHandler },
 	{ method: "GET", pattern: "/agents/:name", policy: "readPublic", build: getAgentHandler },
@@ -328,6 +335,7 @@ export const API_PREFIXES: readonly string[] = [
 	"/plan-runs",
 	"/whoami",
 	"/github-app",
+	"/sample-greeting",
 ];
 
 /**
