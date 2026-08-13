@@ -16,6 +16,7 @@ import { ProjectDetailPage } from "@/pages/ProjectDetail.tsx";
 import { ProjectsPage } from "@/pages/Projects.tsx";
 import { RunDetailPage } from "@/pages/RunDetail.tsx";
 import { RunsPage } from "@/pages/Runs.tsx";
+import { SampleGreetingPage } from "@/pages/sample-greeting.tsx";
 
 // recharts is heavy and tree-shakes poorly (warren-876c). The two
 // analytics pages are its only consumers, so they're code-split into a
@@ -92,6 +93,7 @@ export function App() {
 								/>
 								<Route path="/plan-runs/:id" element={<PlanRunDetailPage />} />
 								<Route path="/agents" element={<AgentsPage />} />
+								<Route path="/sample-greeting" element={<SampleGreetingPage />} />
 								<Route
 									path="/cost-analytics"
 									element={

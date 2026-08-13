@@ -47,6 +47,11 @@ import type {
 	RunState,
 } from "../../../core/wire.ts";
 
+export interface SampleGreetingResponse {
+	message: string;
+	name: string;
+}
+
 export interface ProjectRow {
 	id: string;
 	gitUrl: string;
