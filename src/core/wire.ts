@@ -447,7 +447,7 @@ export type AgentSource = (typeof AGENT_SOURCES)[number];
  * boot). Validating the id where agents enter the system turns that into a
  * typed 422 that names the known ids.
  */
-export const KNOWN_RUNTIME_IDS = ["claude-code", "sapling", "pi"] as const;
+export const KNOWN_RUNTIME_IDS = ["claude-code", "codex", "sapling", "pi"] as const;
 export type RuntimeId = (typeof KNOWN_RUNTIME_IDS)[number];
 
 /** Membership predicate for {@link KNOWN_RUNTIME_IDS}. */

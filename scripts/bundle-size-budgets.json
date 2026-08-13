@@ -7,20 +7,21 @@
 	"$comment_plot_ui_deletion_2026_07_26": "RATCHET DOWN (warren-1f12 / pl-3a79 step 10): the plot UI deletion removed ~3.8k LOC of pages and components (plot-detail/, PlotSummary, the Workspace surface, NewPlotButton, PlotStatusBadge, PlotMetaCardContent, DefaultLanding) plus the plotsApi client block and the plot type region. Re-baselined via `bun run check:bundle-size --update` on a clean --frozen-lockfile build: gzip js totals 299685 -> 285902, largest chunk 174236 -> 160480, gzip css 8362 -> 7897. Lowering, so it applies unconditionally. This is the new floor.",
 	"$comment_capability_layer_2026_07_27": "BOUNDED AUTO-RAISE (warren-f53e / pl-b82d step 19): the UI capability layer adds the useCapabilities hook, the OperatorOnly / OperatorRoute wrappers, and ~25 wrap sites across the pages, against which the deleted PLOT_STATUS registry and the RefreshProjectsCTA label prop return only a few hundred bytes. Net +673 B gzip js / +1984 B raw js — ordinary feature growth, well inside AUTO_RAISE_CAP, re-baselined via `bun run check:bundle-size --update` on a clean --frozen-lockfile build. No new dependency. The 'ratchet only goes down' rule resumes from here.",
 	"$comment_public_labels_2026_07_30": "BOUNDED AUTO-RAISE (warren-14fc / #641): src/ui/src/lib/labels.ts adds the visitor-facing label maps for run / plan-run failure reasons plus the plan-run child rollup, and the call sites that consume them. Net +607 B gzip js / +1211 B raw js — ordinary feature growth, well inside AUTO_RAISE_CAP, re-baselined via `bun run check:bundle-size --update` on a clean --frozen-lockfile build. No new dependency. CSS shrank (no new utilities) and is ratcheted down to its measured floor. The 'ratchet only goes down' rule resumes from here.",
+	"$comment_codex_subscription_2026_08_13": "BOUNDED AUTO-RAISE: the Codex subscription port teaches NewRun not to turn generic project provider/model defaults into explicit Codex overrides and adds Codex to the empty-registry hint. Re-baselined with `bun run check:bundle-size --update`; all increases were within AUTO_RAISE_CAP and no UI dependency was added.",
 	"totals": {
 		"raw": {
-			"js": 947477,
+			"js": 947753,
 			"css": 37264
 		},
 		"gzip": {
-			"js": 284631,
-			"css": 7621
+			"js": 287179,
+			"css": 7681
 		}
 	},
 	"largest": {
 		"gzip": {
-			"js": 160055,
-			"css": 7621
+			"js": 161595,
+			"css": 7681
 		}
 	}
 }

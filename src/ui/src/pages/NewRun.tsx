@@ -53,6 +53,15 @@ function readRouteState(state: unknown): NewRunRouteState {
 	return out;
 }
 
+/** Read the selected agent's runtime without duplicating the server schema. */
+function readAgentRuntime(renderedJson: unknown): string | undefined {
+	if (renderedJson === null || typeof renderedJson !== "object") return undefined;
+	const frontmatter = (renderedJson as { frontmatter?: unknown }).frontmatter;
+	if (frontmatter === null || typeof frontmatter !== "object") return undefined;
+	const runtime = (frontmatter as { runtime?: unknown }).runtime;
+	return typeof runtime === "string" ? runtime : undefined;
+}
+
 export function NewRunPage() {
 	const navigate = useNavigate();
 	const qc = useQueryClient();
@@ -136,17 +145,27 @@ export function NewRunPage() {
 	const selectedAgent = agents.data?.agents.find((a) => a.name === agent);
 	const agentProvider = selectedAgent?.provider ?? "";
 	const agentModel = selectedAgent?.model ?? "";
+	// ChatGPT-authenticated Codex selects from the account's supported models.
+	// Generic project defaults commonly target pi/OpenRouter and must not be
+	// forwarded as `codex exec --model`; an explicit agent model still applies.
+	const usesCodexSubscriptionDefault = readAgentRuntime(selectedAgent?.renderedJson) === "codex";
 	const providerAutoFill =
-		defaultProvider !== undefined && defaultProvider.length > 0 ? defaultProvider : agentProvider;
+		!usesCodexSubscriptionDefault && defaultProvider !== undefined && defaultProvider.length > 0
+			? defaultProvider
+			: agentProvider;
 	const modelAutoFill =
-		defaultModel !== undefined && defaultModel.length > 0 ? defaultModel : agentModel;
+		!usesCodexSubscriptionDefault && defaultModel !== undefined && defaultModel.length > 0
+			? defaultModel
+			: agentModel;
 	const providerFromProjectDefault =
 		!providerTouched &&
+		!usesCodexSubscriptionDefault &&
 		defaultProvider !== undefined &&
 		defaultProvider.length > 0 &&
 		providerOverride === defaultProvider;
 	const modelFromProjectDefault =
 		!modelTouched &&
+		!usesCodexSubscriptionDefault &&
 		defaultModel !== undefined &&
 		defaultModel.length > 0 &&
 		modelOverride === defaultModel;

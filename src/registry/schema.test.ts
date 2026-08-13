@@ -192,7 +192,7 @@ describe("readRuntimeId", () => {
 			frontmatter: { source: "library", runtime: "planner" },
 		};
 		expect(() => readRuntimeId(legacy)).toThrow(AgentSchemaError);
-		expect(() => readRuntimeId(legacy)).toThrow(/claude-code, sapling, pi/);
+		expect(() => readRuntimeId(legacy)).toThrow(/claude-code, codex, sapling, pi/);
 	});
 
 	test("rejects an unknown config override", () => {

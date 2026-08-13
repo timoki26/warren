@@ -64,6 +64,10 @@ cp .env.example .env && $EDITOR .env
 docker compose up -d
 ```
 
+To use a ChatGPT/Codex subscription instead of an API key, build the local
+checkout with the Codex Compose override and select the built-in `codex` agent.
+See [Codex subscription authentication](docs/codex-subscription.md).
+
 > **Image requirement (self-host, `local` runtime): burrow-cli 0.3.15 or newer.** In the default topology warren shares the container with [burrow](https://github.com/jayminwest/burrow) and talks to it over a unix socket. The published image pins `@os-eco/burrow-cli@0.3.15` (see [`Dockerfile`](Dockerfile)). If you build your own image, install 0.3.15 or newer. Earlier releases predate the runtime contract warren depends on (agent spawn shape, resume support, event kinds) and fail at dispatch. Under `WARREN_RUNTIME=k8s` this does not apply, because the run pods carry their own toolchain image and no burrow.
 
 ## Who this is for
@@ -84,7 +88,7 @@ GitHub App mode has shipped. Set `WARREN_FORGE=app` and warren mints short-lived
 
 - **One image, one volume.** The supervisor (`src/supervisor/main.ts`) is the container ENTRYPOINT. It spawns the sandbox runtime first, waits for the unix socket, then spawns warren. SIGTERM and SIGINT forward to both children. The runtime restarts under a 5-in-60s budget on unexpected exit.
 - **Native sandboxing per run.** In the default `local` topology every run gets a fresh `bwrap`-isolated workspace under `/data/burrow/`. The host is unreachable, and warren talks to the runtime over a unix socket with a shared bearer token. Under `WARREN_RUNTIME=k8s` the pod boundary is the sandbox instead (kubelet-enforced CPU and memory, no bwrap). See [the K8s runbook](docs/RUNBOOK-K8S.md).
-- **Built-in agents.** `claude-code`, `sapling`, and `pi` ship inline (`src/registry/builtins/`), so a dispatch needs no extra setup.
+- **Built-in agents.** `claude-code`, `codex`, `sapling`, and `pi` ship inline (`src/registry/builtins/`). Codex's local subscription setup is documented in [docs/codex-subscription.md](docs/codex-subscription.md).
 - **Live event stream.** NDJSON events persist to warren's SQLite log. Clients tail them over `GET /runs/:id/events?follow=1`. The UI, the CLI (`warren run`), and HTTP clients all read the same stream.
 - **Steerable mid-run.** `POST /runs/:id/steer` lands a message in the agent's inbox, and the next turn picks it up. `POST /runs/:id/cancel` aborts cleanly.
 - **Scheduled runs.** `.warren/triggers.yaml` defines cron triggers per project. The in-process scheduler dispatches them on the same composition path as manual runs.

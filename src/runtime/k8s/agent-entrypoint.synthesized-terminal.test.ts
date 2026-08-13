@@ -14,6 +14,7 @@ import { detectRuntimeTerminal } from "../../runs/stream/terminal-detect.ts";
 import {
 	type AgentEnvSource,
 	DEFAULT_STDIN_HOLD_KILL_GRACE_MS,
+	isTerminalEnvelope,
 	parseAgentEntrypointEnv,
 	runAgent,
 } from "./agent-entrypoint.ts";
@@ -158,6 +159,14 @@ describe("parseAgentEntrypointEnv · WARREN_AGENT_STDIN_KILL_GRACE_MS", () => {
 /* -------------------------------------------------------------------------- */
 
 describe("runAgent · synthesized terminal envelope", () => {
+	test("Codex completion is terminal and does not need a synthesized agent_end", () => {
+		for (const type of ["turn.completed", "turn.failed"]) {
+			expect(
+				isTerminalEnvelope({ kind: "state_change", stream: "system", payload: { type } }),
+			).toBe(true);
+		}
+	});
+
 	test("a non-zero exit with no terminal envelope synthesizes a FAILED agent_end", async () => {
 		const { out, lines } = collector();
 		const result = await runAgent(parseAgentEntrypointEnv(baseEnv()), {

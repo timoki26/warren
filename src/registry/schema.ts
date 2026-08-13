@@ -71,12 +71,12 @@ export interface AgentDefinition {
  *              "gpt-4o", "gemini-2.0-pro"). Free-form string; the runtime
  *              decides how to interpret it.
  *   runtime  — burrow runtime id this canopy agent dispatches onto
- *              (e.g. "claude-code", "sapling", "pi"). When unset,
+ *              (e.g. "claude-code", "codex", "sapling", "pi"). When unset,
  *              warren falls back to `DEFAULT_RUNTIME_ID` ("pi") —
  *              the multi-provider runtime is the preferred default
  *              (warren-16f8). claude-code stays available but is now
  *              opt-in: pin it via this field. Built-in agents that
- *              want a non-pi runtime (claude-code / sapling) declare
+ *              want a non-pi runtime (claude-code / codex / sapling) declare
  *              it here explicitly; interactive system-prompt-only
  *              agents like `brainstorm` / `planner` (warren-ebca) do
  *              the same so they compose onto a real burrow runtime.

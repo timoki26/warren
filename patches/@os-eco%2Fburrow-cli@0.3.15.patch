@@ -1,0 +1,288 @@
+diff --git a/src/runner/dispatch.ts b/src/runner/dispatch.ts
+index 43c84150610645e7d767d8f720a710f215c5fb03..036a717f83e84f7b81e419bd9240f23a1d4bdf18 100644
+--- a/src/runner/dispatch.ts
++++ b/src/runner/dispatch.ts
+@@ -15,8 +15,8 @@
+  *     `RunLoop` does it). `dispatchRun` returns the `RunOutcome` that should
+  *     be passed to `finalize`; it never writes the terminal state itself.
+  *
+- * Anything bracketing-the-spawn lives here: pendingMessage claim, codex
+- * prompt-file write, network proxy lifecycle, stdout/stderr→events stream.
++ * Anything bracketing-the-spawn lives here: pendingMessage claim, runtime
++ * workspace preparation, network proxy lifecycle, stdout/stderr→events stream.
+  * Stays in lockstep with `prompt.ts`'s historical inline driver — the bug
+  * `burrow-7b97` fix lifted that body out so the daemonized HTTP path
+  * doesn't have to reimplement it.
+@@ -31,7 +31,6 @@ import type { Client } from "../lib/client.ts";
+ import { runSandboxed } from "../provider/local/sandbox.ts";
+ import type { SandboxProfile, SpawnCommand, SpawnResult } from "../provider/types.ts";
+ import { type ProxyHandle, type StartProxyOptions, startProxy } from "../proxy/server.ts";
+-import { composeCodexPrompt, writeCodexPromptFile } from "../runtime/codex.ts";
+ import type {
+ 	AgentFrontmatter,
+ 	AgentRuntime,
+@@ -158,14 +157,6 @@ export async function dispatchRun(input: DispatchRunInput): Promise<RunOutcome>
+ 		});
+ 	}
+ 
+-	if (runtime.id === "codex") {
+-		await writeCodexPromptFile(
+-			burrow.workspacePath,
+-			run.id,
+-			composeCodexPrompt(run.prompt, pendingMessages),
+-		);
+-	}
+-
+ 	const frontmatter = readFrontmatter(run.metadataJson);
+ 	const spawnCtx = {
+ 		burrow,
+diff --git a/src/runtime/codex.ts b/src/runtime/codex.ts
+index b83967c4ae46d0b7bce34e26a99155ee06dfe316..f524cb58579a2390778c542c56ada4bbb5a8cdc0 100644
+--- a/src/runtime/codex.ts
++++ b/src/runtime/codex.ts
+@@ -1,25 +1,26 @@
+ /**
+- * Built-in `codex` runtime — one-shot, raw-text output.
++ * Built-in `codex` runtime for subscription-authenticated, non-interactive runs.
+  *
+- * Codex is a single-pass agent: each invocation reads a prompt file,
+- * executes once, and exits. There's no inter-turn injection seam, so
+- * `supportsResume` is false and `encodeInboxMessage` is intentionally
+- * absent — pending steering messages roll over to the *next* run, which
+- * the inbox layer surfaces as a warning when the user runs `burrow send`
+- * against a one-shot runtime (SPEC §13.3).
++ * The outer burrow sandbox is the enforcement boundary, so Codex runs with its
++ * own sandbox disabled. Prompts are delivered over stdin and stdout is JSONL,
++ * matching the current `codex exec` automation contract.
+  *
+- * Pending messages from the prior run are still folded into the next run's
+- * prompt prefix here so steering isn't silently lost when the user sends a
+- * message and then queues another run.
++ * ChatGPT-managed credentials are copied into a git-ignored per-run CODEX_HOME
++ * before spawn. On a clean exit the command stages Codex's refreshed auth file;
++ * `extractMetadata` persists it back to the host credential cache and removes
++ * the workspace copy. Credentials therefore remain writable for refresh without
++ * exposing the host's broader `~/.codex` directory inside the sandbox.
+  */
+ 
+-import { mkdir, writeFile } from "node:fs/promises";
++import { existsSync } from "node:fs";
++import { chmod, copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
++import { homedir } from "node:os";
+ import { join } from "node:path";
+ import type { Message } from "../core/types.ts";
+ import type { SpawnCommand } from "../provider/types.ts";
+-import { parseRawText } from "./parsers/raw-text.ts";
+ import type {
+ 	AgentRuntime,
++	ExtractMetadataContext,
+ 	InstallCheckResult,
+ 	ParseContext,
+ 	PrepareContext,
+@@ -30,6 +31,20 @@ import { runVersionCheck } from "./version.ts";
+ 
+ const CODEX_BIN = "codex";
+ export const CODEX_PROMPT_DIR = ".burrow/codex";
++export const CODEX_RUNTIME_HOME_DIR = ".warren/codex-home";
++export const CODEX_REFRESHED_AUTH_FILE = "refreshed-auth.json";
++const CODEX_AUTH_FILE = "auth.json";
++
++const CODEX_RUN_SCRIPT = [
++	'trap \'rm -f "$CODEX_HOME/auth.json"\' EXIT HUP INT TERM',
++	'codex "$@"',
++	"status=$?",
++	'if [ "$status" -eq 0 ] && [ -f "$CODEX_HOME/auth.json" ]; then',
++	'  mv "$CODEX_HOME/auth.json" "$CODEX_HOME/refreshed-auth.json"',
++	'  chmod 600 "$CODEX_HOME/refreshed-auth.json"',
++	"fi",
++	'exit "$status"',
++].join("\n");
+ 
+ export const codexRuntime: AgentRuntime = {
+ 	id: "codex",
+@@ -37,36 +52,51 @@ export const codexRuntime: AgentRuntime = {
+ 	supportsResume: false,
+ 
+ 	buildSpawnCommand(ctx: SpawnContext): SpawnCommand {
+-		const promptFile = codexPromptFileFor(ctx.run.id);
++		const argv = [
++			"sh",
++			"-c",
++			CODEX_RUN_SCRIPT,
++			"warren-codex",
++			"exec",
++			"--json",
++			"--ephemeral",
++			"--ignore-user-config",
++			"--sandbox",
++			"danger-full-access",
++			"--color",
++			"never",
++		];
++		const model = ctx.frontmatter?.model?.trim();
++		if (model) argv.push("--model", model);
++		argv.push("-");
+ 		return {
+-			argv: [CODEX_BIN, "exec", "--prompt-file", promptFile],
++			argv,
++			env: { CODEX_HOME: codexSandboxHome(ctx.workspacePath) },
++			stdin: composeCodexPrompt(ctx.prompt, ctx.pendingMessages),
+ 		};
+ 	},
+ 
+ 	parseEvents(line: string, _ctx: ParseContext): RuntimeEvent[] {
+-		return parseRawText(line);
++		return parseCodexJsonl(line);
+ 	},
+ 
+ 	async prepareWorkspace(ctx: PrepareContext): Promise<void> {
+-		// Phase 4 establishes the file path; the run-loop layer in Phase 7 owns
+-		// writing the actual prompt body before spawn (it has the SpawnContext).
+-		// We just guarantee the directory exists so writeFile in the run loop
+-		// doesn't trip on a missing parent.
+-		await mkdir(join(ctx.workspacePath, CODEX_PROMPT_DIR), { recursive: true });
++		await forwardCodexHostCredentials(ctx.workspacePath);
++	},
++
++	async extractMetadata(ctx: ExtractMetadataContext): Promise<undefined> {
++		await persistCodexHostCredentials(ctx.workspacePath);
++		return undefined;
+ 	},
+ 
+ 	async installCheck(): Promise<InstallCheckResult> {
+ 		return runVersionCheck(CODEX_BIN, ["--version"], {
+-			hint: "install OpenAI Codex CLI: see https://github.com/openai/codex",
++			hint:
++				"install Codex CLI with `npm install -g @openai/codex`, then run `codex login` for ChatGPT subscription access",
+ 		});
+ 	},
+ };
+ 
+-/**
+- * Compose a prompt body that prefixes any pending steering messages.
+- * Exported so the run-loop layer (Phase 7) can call it when materializing
+- * the prompt file before spawn.
+- */
+ export function composeCodexPrompt(prompt: string, messages: Message[]): string {
+ 	if (messages.length === 0) return prompt;
+ 	const steering = messages.map((m) => `[STEERING] (priority: ${m.priority}) ${m.body}`).join("\n");
+@@ -77,6 +107,7 @@ export function codexPromptFileFor(runId: string): string {
+ 	return `${CODEX_PROMPT_DIR}/${runId}.txt`;
+ }
+ 
++/** Retained for public API compatibility; current Codex runs use stdin. */
+ export async function writeCodexPromptFile(
+ 	workspacePath: string,
+ 	runId: string,
+@@ -88,3 +119,111 @@ export async function writeCodexPromptFile(
+ 	await writeFile(target, body, { encoding: "utf8", flag: "w" });
+ 	return target;
+ }
++
++export interface CodexCredentialOptions {
++	authPath?: string;
++}
++
++export function codexHostAuthPath(): string {
++	const configuredHome = process.env.CODEX_HOME?.trim();
++	const home =
++		configuredHome && configuredHome.length > 0 ? configuredHome : join(homedir(), ".codex");
++	return join(home, CODEX_AUTH_FILE);
++}
++
++export function codexSandboxHome(
++	workspacePath: string,
++	platform: NodeJS.Platform = process.platform,
++): string {
++	return platform === "linux"
++		? `/workspace/${CODEX_RUNTIME_HOME_DIR}`
++		: join(workspacePath, CODEX_RUNTIME_HOME_DIR);
++}
++
++export async function forwardCodexHostCredentials(
++	workspacePath: string,
++	options: CodexCredentialOptions = {},
++): Promise<void> {
++	const source = options.authPath ?? codexHostAuthPath();
++	if (!existsSync(source)) {
++		throw new Error(
++			`Codex credentials not found at ${source}; run \`codex login\` or configure CODEX_HOME`,
++		);
++	}
++	const runtimeHome = join(workspacePath, CODEX_RUNTIME_HOME_DIR);
++	await rm(runtimeHome, { recursive: true, force: true });
++	await mkdir(runtimeHome, { recursive: true });
++	await writeFile(join(runtimeHome, ".gitignore"), "*\n", { encoding: "utf8", mode: 0o600 });
++	const target = join(runtimeHome, CODEX_AUTH_FILE);
++	await copyFile(source, target);
++	await chmod(target, 0o600);
++}
++
++export async function persistCodexHostCredentials(
++	workspacePath: string,
++	options: CodexCredentialOptions = {},
++): Promise<void> {
++	const runtimeHome = join(workspacePath, CODEX_RUNTIME_HOME_DIR);
++	const refreshed = join(runtimeHome, CODEX_REFRESHED_AUTH_FILE);
++	try {
++		if (!existsSync(refreshed)) return;
++		const target = options.authPath ?? codexHostAuthPath();
++		const body = await readFile(refreshed);
++		await writeFile(target, body, { mode: 0o600 });
++		await chmod(target, 0o600);
++	} finally {
++		await rm(runtimeHome, { recursive: true, force: true });
++	}
++}
++
++export function parseCodexJsonl(line: string): RuntimeEvent[] {
++	const trimmed = line.trim();
++	if (trimmed.length === 0) return [];
++	let parsed: unknown;
++	try {
++		parsed = JSON.parse(trimmed);
++	} catch {
++		return [
++			{ kind: "text", stream: "stdout", payload: { text: line, parseError: "invalid JSON" } },
++		];
++	}
++	if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
++		return [{ kind: "text", stream: "stdout", payload: { text: line } }];
++	}
++	const env = parsed as Record<string, unknown>;
++	const type = typeof env.type === "string" ? env.type : "";
++	if (type === "thread.started" || type === "turn.started" || type === "turn.completed") {
++		return [{ kind: "state_change", stream: "system", payload: env }];
++	}
++	if (type === "turn.failed" || type === "error") {
++		return [{ kind: "state_change", stream: "system", payload: env }];
++	}
++	if (type.startsWith("item.")) return mapCodexItem(env);
++	return [{ kind: "telemetry", stream: "system", payload: env }];
++}
++
++function mapCodexItem(env: Record<string, unknown>): RuntimeEvent[] {
++	const item = env.item;
++	if (item === null || typeof item !== "object" || Array.isArray(item)) {
++		return [{ kind: "telemetry", stream: "system", payload: env }];
++	}
++	const value = item as Record<string, unknown>;
++	const itemType = typeof value.type === "string" ? value.type : "";
++	const text = typeof value.text === "string" ? value.text : undefined;
++	if (itemType === "agent_message" && text !== undefined) {
++		return [{ kind: "text", stream: "stdout", payload: { text, codex: env } }];
++	}
++	if (itemType === "reasoning" && text !== undefined) {
++		return [{ kind: "thinking", stream: "stdout", payload: { text, codex: env } }];
++	}
++	if (
++		itemType === "command_execution" ||
++		itemType === "file_change" ||
++		itemType === "mcp_tool_call"
++	) {
++		const status = typeof value.status === "string" ? value.status : "";
++		const completed = status === "completed" || status === "failed";
++		return [{ kind: completed ? "tool_result" : "tool_use", stream: "stdout", payload: env }];
++	}
++	return [{ kind: "telemetry", stream: "system", payload: env }];
++}

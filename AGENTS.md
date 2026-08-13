@@ -27,9 +27,9 @@ infrastructure.
   built-in agent.
 
 The agent registry is entirely inline. `BUILTIN_AGENTS`
-(`src/registry/builtins/`) ships eight agents and boot seeds them into
-the agents table on every start: `claude-code`, `sapling`, `pi`,
-`planner`, `nightwatch`, `bugwatch`, `pr-fixer`, and `healer`. There is
+(`src/registry/builtins/`) ships nine agents and boot seeds them into
+the agents table on every start: `claude-code`, `codex`, `sapling`,
+`pi`, `planner`, `nightwatch`, `bugwatch`, `pr-fixer`, and `healer`. There is
 no external agent library. `GET /agents` still reports
 `source: "builtin" | "library"` provenance. The `library` arm survives
 only for legacy rows.

@@ -22,7 +22,7 @@ import type { StreamEventView } from "./types.ts";
  * Returns the warren-side outcome to reap with, or `null` if the event
  * doesn't carry a terminal signal.
  *
- * Two runtime terminal shapes ride the same `kind=state_change`,
+ * Runtime terminal shapes ride the same `kind=state_change`,
  * `stream=system` carrier:
  *
  *   - claude-code: burrow's jsonl-claude parser emits `payload.type ===
@@ -33,6 +33,8 @@ import type { StreamEventView } from "./types.ts";
  *     `errorMessage` → `failed` (warren-1ac2 / pl-5516); absent both,
  *     → `succeeded`. Zero-token / empty-content alone is NOT a failure
  *     signal — a legitimate noop run shares that shape.
+ *   - codex: the JSONL automation stream emits `turn.completed` or
+ *     `turn.failed` after the final agent item.
  *
  * burrow's own cancel path emits a different terminal shape; that case
  * is handled by `cancelRun`. Future runtimes extend this dispatch by
@@ -54,6 +56,8 @@ export function detectRuntimeTerminal(event: StreamEventView): RunTerminalState 
 	const env = extractAgentEventEnvelope(event);
 	if (env === null) return null;
 	if (env.type === "result") return env.payload.is_error === true ? "failed" : "succeeded";
+	if (env.type === "turn.completed") return "succeeded";
+	if (env.type === "turn.failed") return "failed";
 	if (env.type === "agent_end") {
 		const err = env.errorMessage;
 		const failed = env.stopReason === "error" || (typeof err === "string" && err.length > 0);

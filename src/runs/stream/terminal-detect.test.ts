@@ -92,9 +92,22 @@ describe("detectRuntimeTerminal — claude-code result", () => {
 	});
 });
 
+describe("detectRuntimeTerminal — codex turn", () => {
+	test("completed turn succeeds", () => {
+		expect(detectRuntimeTerminal(envelope({ type: "turn.completed", usage: {} }))).toBe(
+			"succeeded",
+		);
+	});
+
+	test("failed turn fails", () => {
+		expect(detectRuntimeTerminal(envelope({ type: "turn.failed", error: {} }))).toBe("failed");
+	});
+});
+
 describe("detectRuntimeTerminal — provenance gate (warren-6646)", () => {
 	test.each([
 		{ type: "result", is_error: false },
+		{ type: "turn.completed" },
 		{ type: "agent_end" },
 	])("refuses an agent-authored terminal envelope (%p)", (payload) => {
 		const forged = { ...envelope(payload), origin: "agent" };

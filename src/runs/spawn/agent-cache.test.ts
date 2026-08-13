@@ -198,6 +198,78 @@ describe("provider/model override resolution (warren-618b / warren-f8c0)", () =>
 		expect(stored.frontmatter.model).toBe("claude-opus-4-7");
 	});
 
+	test("Codex subscription runtime ignores generic project provider/model defaults", async () => {
+		await repos.agents.upsert({
+			name: "codex",
+			renderedJson: makeAgentJson({
+				name: "codex",
+				frontmatter: { source: "builtin", runtime: "codex" },
+			}),
+		});
+		const { client } = makeBurrowClient();
+		const result = await spawnRun({
+			repos,
+			runtimeProvider: makeProvider(client),
+			agentName: "codex",
+			projectId: "prj_xxxxxxxxxxxx",
+			prompt: "run",
+			warrenConfigs: {
+				get: async () => ({
+					triggers: null,
+					defaults: { defaultProvider: "openrouter", defaultModel: "moonshotai/kimi-k3" },
+					prTemplate: null,
+					sourceFile: null,
+					errors: [],
+					warnings: [],
+				}),
+				invalidate: () => undefined,
+				clear: () => undefined,
+				size: () => 0,
+			},
+		});
+
+		const stored = result.run.renderedAgentJson as { frontmatter: Record<string, unknown> };
+		expect(stored.frontmatter.runtime).toBe("codex");
+		expect(stored.frontmatter.provider).toBeUndefined();
+		expect(stored.frontmatter.model).toBeUndefined();
+	});
+
+	test("Codex subscription runtime still accepts an explicit per-run model", async () => {
+		await repos.agents.upsert({
+			name: "codex",
+			renderedJson: makeAgentJson({
+				name: "codex",
+				frontmatter: { source: "builtin", runtime: "codex" },
+			}),
+		});
+		const { client } = makeBurrowClient();
+		const result = await spawnRun({
+			repos,
+			runtimeProvider: makeProvider(client),
+			agentName: "codex",
+			projectId: "prj_xxxxxxxxxxxx",
+			prompt: "run",
+			modelOverride: "account-supported-codex-model",
+			warrenConfigs: {
+				get: async () => ({
+					triggers: null,
+					defaults: { defaultProvider: "openrouter", defaultModel: "moonshotai/kimi-k3" },
+					prTemplate: null,
+					sourceFile: null,
+					errors: [],
+					warnings: [],
+				}),
+				invalidate: () => undefined,
+				clear: () => undefined,
+				size: () => 0,
+			},
+		});
+
+		const stored = result.run.renderedAgentJson as { frontmatter: Record<string, unknown> };
+		expect(stored.frontmatter.provider).toBeUndefined();
+		expect(stored.frontmatter.model).toBe("account-supported-codex-model");
+	});
+
 	test("leaves frontmatter alone when overrides are empty / whitespace", async () => {
 		await repos.agents.upsert({
 			name: "pi",

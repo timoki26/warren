@@ -110,6 +110,7 @@ RUN bun install -g \
     @os-eco/mulch-cli@0.10.7 \
     @os-eco/sapling-cli@0.3.2 \
     @anthropic-ai/claude-code@2.1.150 \
+    @openai/codex@0.144.6 \
     @earendil-works/pi-coding-agent@0.83.0 \
     pnpm@11.1.2
 
@@ -133,9 +134,10 @@ RUN sed -i '1s|^#!/usr/bin/env node|#!/usr/bin/env bun|' \
 
 WORKDIR /app
 
-# Server-side dependencies. Copy lockfiles first so a code-only edit
-# doesn't bust the bun install layer.
+# Server-side dependencies. Copy lockfiles and dependency patches first so a
+# code-only edit doesn't bust the bun install layer.
 COPY package.json bun.lock ./
+COPY patches ./patches
 RUN bun install --frozen-lockfile
 
 # Source. Excludes are listed in .dockerignore (node_modules, data, .env,

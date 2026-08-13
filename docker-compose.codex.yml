@@ -1,0 +1,14 @@
+# Local-source override for ChatGPT subscription-authenticated Codex runs.
+# Usage is documented in docs/CODEX-SUBSCRIPTION.md.
+
+services:
+  warren:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      CODEX_HOME: /data/codex
+    volumes:
+      - type: bind
+        source: ${WARREN_CODEX_AUTH_FILE:-${HOME}/.codex/auth.json}
+        target: /data/codex/auth.json

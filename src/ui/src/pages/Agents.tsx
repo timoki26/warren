@@ -117,8 +117,9 @@ export function AgentsPage() {
 							title="No agents registered"
 							description={
 								<>
-									Built-in <code>claude-code</code>, <code>sapling</code>, and <code>pi</code>{" "}
-									should appear here automatically — if not, check <code>warren doctor</code>.
+									Built-in <code>claude-code</code>, <code>codex</code>, <code>sapling</code>, and{" "}
+									<code>pi</code> should appear here automatically — if not, check{" "}
+									<code>warren doctor</code>.
 								</>
 							}
 						/>

@@ -228,16 +228,22 @@ export interface AgentRunResult {
 }
 
 /**
- * True when a parsed runtime event is a terminal envelope — claude's `result`
- * or pi's `agent_end` on the `state_change`/`system` carrier. This is the exact
- * predicate the control plane's `detectRuntimeTerminal`
+ * True when a parsed runtime event is a terminal envelope — claude's `result`,
+ * Codex's `turn.completed` / `turn.failed`, or pi's `agent_end` on the
+ * `state_change`/`system` carrier. This is the exact predicate the control plane's `detectRuntimeTerminal`
  * (src/runs/stream/terminal-detect.ts) applies to the re-parsed stream, kept in
  * sync by going through the same shared extractor
  * (`src/core/event-envelope.ts`). (warren-9a4a)
  */
 export function isTerminalEnvelope(ev: RuntimeEvent): boolean {
 	const env = extractAgentEventEnvelope(ev);
-	return env !== null && (env.type === "result" || env.type === "agent_end");
+	return (
+		env !== null &&
+		(env.type === "result" ||
+			env.type === "turn.completed" ||
+			env.type === "turn.failed" ||
+			env.type === "agent_end")
+	);
 }
 
 /**

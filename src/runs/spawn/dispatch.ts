@@ -125,18 +125,29 @@ export async function spawnRun(input: SpawnRunInput): Promise<SpawnRunResult> {
 
 	// warren-618b: fold per-project provider/model defaults onto the agent
 	// frontmatter, operator per-run override winning. Order: operator
-	// override > .warren/defaults.json > agent frontmatter, all riding the
+	// override > .warren/config.yaml > agent frontmatter, all riding the
 	// same `withProviderOverrides` path onto frozen `rendered_agent_json`.
+	// Subscription-authenticated Codex is the exception described below.
 	const projectDefaults = await readProjectDefaults(
 		input.warrenConfigs,
 		projectAfterRefresh.id,
 		projectAfterRefresh.localPath,
 	);
+	// warren-b802: resolve per-project runtime override for the planner
+	// interactive agent at dispatch time so the agent row stays honest as
+	// "builtin". Resolve before provider/model defaults because Codex owns its
+	// subscription-backed model selection.
+	const runtimeOverride = interactiveRuntimeOverride(baseAgent.name, projectDefaults);
+	const runtimeId = readRuntimeId(baseAgent, runtimeOverride);
+	const inheritsProjectModelDefaults = runtimeId !== "codex";
 	const effectiveProvider = resolveOverride(
 		input.providerOverride,
-		projectDefaults?.defaultProvider,
+		inheritsProjectModelDefaults ? projectDefaults?.defaultProvider : undefined,
 	);
-	const effectiveModel = resolveOverride(input.modelOverride, projectDefaults?.defaultModel);
+	const effectiveModel = resolveOverride(
+		input.modelOverride,
+		inheritsProjectModelDefaults ? projectDefaults?.defaultModel : undefined,
+	);
 	// warren-a63d: fold the per-dispatch spend cap on top. The full chain
 	// (override > agent frontmatter > project default, with malformed agent
 	// values still failing open) lives in resolveCapOverride — cost-cap.ts
@@ -200,11 +211,6 @@ export async function spawnRun(input: SpawnRunInput): Promise<SpawnRunResult> {
 
 	const runEnv = composeRunEnv(run.id, projectDefaults?.qualityGate, input.serverEnv);
 
-	// warren-b802: resolve per-project runtime override for the planner
-	// interactive agent at dispatch time so the agent row
-	// stays honest as 'builtin'.
-	const runtimeOverride = interactiveRuntimeOverride(agent.name, projectDefaults);
-
 	const log = bindRunLogger(input.logger, run.id);
 	// Runtime-provider seam (warren-c42c: burrow-client eviction, bucket 2).
 	// `provider.create` collapses burrow's provision + dispatch (`burrowsUp` +
@@ -214,7 +220,6 @@ export async function spawnRun(input: SpawnRunInput): Promise<SpawnRunResult> {
 	// boot-selected provider (`resolveRuntimeProvider`, honoring `WARREN_RUNTIME`)
 	// and thread it in; there is no `burrowClient` on this seam to fall back to.
 	const provider: RuntimeProvider = input.runtimeProvider;
-	const runtimeId = readRuntimeId(agent, runtimeOverride);
 	// Neutral RunSpec (provider maps it to the two burrow calls). `network` is
 	// REQUIRED on the seam, so resolve burrow's own default (`none`) here — the
 	// domain now owns the "no explicit network ⇒ default" decision that
