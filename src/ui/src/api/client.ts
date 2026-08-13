@@ -129,7 +129,7 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
 export const sampleGreetingApi = {
 	get: (name: string, signal?: AbortSignal) => {
 		const query = new URLSearchParams({ name });
-		return request<SampleGreetingResponse>(`/sample-greeting?${query.toString()}`, {
+		return request<SampleGreetingResponse>(`/api/sample-greeting?${query.toString()}`, {
 			...(signal ? { signal } : {}),
 		});
 	},

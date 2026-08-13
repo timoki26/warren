@@ -30,6 +30,12 @@ Total routes: **44**.
 | `GET` | `/analytics/runs` | `listRunAnalyticsHandler` |  |
 | `GET` | `/analytics/behavior` | `listBehaviorAnalyticsHandler` |  |
 
+## /api
+
+| Method | Pattern | Handler | Notes |
+| --- | --- | --- | --- |
+| `GET` | `/api/sample-greeting` | `sampleGreetingHandler` |  |
+
 ## /github-app
 
 | Method | Pattern | Handler | Notes |
@@ -104,12 +110,6 @@ Total routes: **44**.
 | `POST` | `/runs/:id/cancel` | `cancelRunHandler` |  |
 | `POST` | `/runs/:id/preview/login` | `previewLoginHandler` | warren-e1b0: POST, not GET — the bearer rides the `Authorization` header like every other /runs route instead of a `?token=` query string that would land in history / Referer / proxy logs. |
 | `POST` | `/runs/:id/preview/teardown` | `previewTeardownHandler` |  |
-
-## /sample-greeting
-
-| Method | Pattern | Handler | Notes |
-| --- | --- | --- | --- |
-| `GET` | `/sample-greeting` | `sampleGreetingHandler` |  |
 
 ## /version
 

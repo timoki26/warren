@@ -291,6 +291,11 @@ describe("wire paths", () => {
 		{ name: "meta.healthz", call: (a) => a.metaApi.healthz(), url: "/healthz" },
 		{ name: "meta.readyz", call: (a) => a.metaApi.readyz(), url: "/readyz" },
 		{ name: "meta.version", call: (a) => a.metaApi.version(), url: "/version" },
+		{
+			name: "sampleGreeting.get",
+			call: (a) => a.sampleGreetingApi.get("Codex"),
+			url: "/api/sample-greeting?name=Codex",
+		},
 		{ name: "analytics.cost", call: (a) => a.analyticsApi.cost(), url: "/analytics/cost" },
 		{
 			name: "analytics.cost (filtered)",
