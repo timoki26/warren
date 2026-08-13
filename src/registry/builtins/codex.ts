@@ -30,5 +30,7 @@ export const CODEX_BUILTIN: AgentDefinition = {
 		source: "builtin",
 		tags: ["agent"],
 		runtime: "codex",
+		model: "gpt-5.6-luna",
+		reasoningEffort: "high",
 	},
 };

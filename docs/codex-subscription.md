@@ -56,9 +56,10 @@ warren run codex <project-id> -p "Implement the requested change and run the qua
 ```
 
 An optional per-run model override becomes Codex's `--model` value. With no
-override, Codex uses the subscription/workspace default. Codex does not inherit
-the project's generic `defaultProvider` or `defaultModel`, because those may
-target a different runtime and an unsupported provider model identifier.
+override, the built-in Codex agent uses `gpt-5.6-luna` with high reasoning.
+Codex does not inherit the project's generic `defaultProvider` or `defaultModel`,
+because those may target a different runtime and an unsupported provider model
+identifier.
 
 ## Limits
 

@@ -46,12 +46,13 @@ describe("patched Codex runtime", () => {
 			pendingMessages: [],
 			envResolved: {},
 			workspacePath: "/repo/workspace",
-			frontmatter: { model: "gpt-codex-test" },
+			frontmatter: { model: "gpt-codex-test", reasoningEffort: "high" },
 		});
 
 		expect(command.argv).toContain("--json");
 		expect(command.argv).toContain("danger-full-access");
 		expect(command.argv).toContain("gpt-codex-test");
+		expect(command.argv).toContain('model_reasoning_effort="high"');
 		expect(command.argv.at(-1)).toBe("-");
 		expect(command.stdin).toBe("fix it");
 		expect(command.env?.CODEX_HOME).toBe(

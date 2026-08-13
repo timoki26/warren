@@ -79,6 +79,11 @@ describe("BUILTIN_AGENTS", () => {
 		}
 	});
 
+	test("Codex defaults to Luna with high reasoning", () => {
+		expect(CODEX_BUILTIN.frontmatter.model).toBe("gpt-5.6-luna");
+		expect(CODEX_BUILTIN.frontmatter.reasoningEffort).toBe("high");
+	});
+
 	// warren-6a34: the operating-contract block for the interactive
 	// coding built-ins must frame the quality gate as terminal, not advisory.
 	// This regression test prevents the bullet from drifting back to softer

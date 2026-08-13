@@ -1,5 +1,5 @@
 diff --git a/src/runner/dispatch.ts b/src/runner/dispatch.ts
-index 43c84150610645e7d767d8f720a710f215c5fb03..036a717f83e84f7b81e419bd9240f23a1d4bdf18 100644
+index 43c84150610645e7d767d8f720a710f215c5fb03..740c9c4e811c17e11fa4306eb901cf418f9c5ad5 100644
 --- a/src/runner/dispatch.ts
 +++ b/src/runner/dispatch.ts
 @@ -15,8 +15,8 @@
@@ -36,8 +36,24 @@ index 43c84150610645e7d767d8f720a710f215c5fb03..036a717f83e84f7b81e419bd9240f23a
  	const frontmatter = readFrontmatter(run.metadataJson);
  	const spawnCtx = {
  		burrow,
+@@ -557,0 +549 @@ function readFrontmatter(metadata: unknown): AgentFrontmatter | undefined {
++	if (isReasoningEffort(obj.reasoningEffort)) out.reasoningEffort = obj.reasoningEffort;
+@@ -561,0 +554,13 @@ function readFrontmatter(metadata: unknown): AgentFrontmatter | undefined {
++
++function isReasoningEffort(
++	value: unknown,
++): value is NonNullable<AgentFrontmatter["reasoningEffort"]> {
++	return (
++		value === "none" ||
++		value === "low" ||
++		value === "medium" ||
++		value === "high" ||
++		value === "xhigh" ||
++		value === "max"
++	);
++}
 diff --git a/src/runtime/codex.ts b/src/runtime/codex.ts
-index b83967c4ae46d0b7bce34e26a99155ee06dfe316..f524cb58579a2390778c542c56ada4bbb5a8cdc0 100644
+index b83967c4ae46d0b7bce34e26a99155ee06dfe316..38daa2bce28a18d200e96b0113f3d72ef1ad7e6c 100644
 --- a/src/runtime/codex.ts
 +++ b/src/runtime/codex.ts
 @@ -1,25 +1,26 @@
@@ -100,7 +116,7 @@ index b83967c4ae46d0b7bce34e26a99155ee06dfe316..f524cb58579a2390778c542c56ada4bb
  
  export const codexRuntime: AgentRuntime = {
  	id: "codex",
-@@ -37,36 +52,51 @@ export const codexRuntime: AgentRuntime = {
+@@ -37,36 +52,55 @@ export const codexRuntime: AgentRuntime = {
  	supportsResume: false,
  
  	buildSpawnCommand(ctx: SpawnContext): SpawnCommand {
@@ -121,6 +137,10 @@ index b83967c4ae46d0b7bce34e26a99155ee06dfe316..f524cb58579a2390778c542c56ada4bb
 +		];
 +		const model = ctx.frontmatter?.model?.trim();
 +		if (model) argv.push("--model", model);
++		const reasoningEffort = ctx.frontmatter?.reasoningEffort;
++		if (reasoningEffort) {
++			argv.push("--config", `model_reasoning_effort=${JSON.stringify(reasoningEffort)}`);
++		}
 +		argv.push("-");
  		return {
 -			argv: [CODEX_BIN, "exec", "--prompt-file", promptFile],
@@ -166,7 +186,7 @@ index b83967c4ae46d0b7bce34e26a99155ee06dfe316..f524cb58579a2390778c542c56ada4bb
  export function composeCodexPrompt(prompt: string, messages: Message[]): string {
  	if (messages.length === 0) return prompt;
  	const steering = messages.map((m) => `[STEERING] (priority: ${m.priority}) ${m.body}`).join("\n");
-@@ -77,6 +107,7 @@ export function codexPromptFileFor(runId: string): string {
+@@ -77,6 +111,7 @@ export function codexPromptFileFor(runId: string): string {
  	return `${CODEX_PROMPT_DIR}/${runId}.txt`;
  }
  
@@ -174,7 +194,7 @@ index b83967c4ae46d0b7bce34e26a99155ee06dfe316..f524cb58579a2390778c542c56ada4bb
  export async function writeCodexPromptFile(
  	workspacePath: string,
  	runId: string,
-@@ -88,3 +119,111 @@ export async function writeCodexPromptFile(
+@@ -88,3 +123,111 @@ export async function writeCodexPromptFile(
  	await writeFile(target, body, { encoding: "utf8", flag: "w" });
  	return target;
  }
@@ -286,3 +306,9 @@ index b83967c4ae46d0b7bce34e26a99155ee06dfe316..f524cb58579a2390778c542c56ada4bb
 +	}
 +	return [{ kind: "telemetry", stream: "system", payload: env }];
 +}
+diff --git a/src/runtime/runtime.ts b/src/runtime/runtime.ts
+index bc2bd9eb9dd13050a558a13bfba7d5364c09cff8..56dc539990dbc040970ecccea68c8878c94b9bf5 100644
+--- a/src/runtime/runtime.ts
++++ b/src/runtime/runtime.ts
+@@ -68,0 +69 @@ export interface AgentFrontmatter {
++	reasoningEffort?: "none" | "low" | "medium" | "high" | "xhigh" | "max";
